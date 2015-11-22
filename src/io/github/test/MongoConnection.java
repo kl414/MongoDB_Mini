@@ -6,6 +6,8 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 
 import com.mongodb.BasicDBList;
@@ -27,27 +29,47 @@ public class MongoConnection {
 		
 		BaseConnection bc = new BaseConnection();
 		bc.connect();
-		bc.setDBAndCollection("cs336", "unlabel_review_after_splitting");
-		
-		int value = 0;
-		
-		//get each review out of the review list of splitted words
-		DBCursor cursor = bc.getCursor();
-		while(cursor.hasNext()){
-			DBObject line = cursor.next();
-			BasicDBList reviews = (BasicDBList) line.get("review");
+		PrintWriter writer;
+		try {
+			writer = new PrintWriter("output.txt", "UTF-8");
 			
-			for(int i = 0; i < reviews.size(); i++){
-				BasicDBObject review = (BasicDBObject) reviews.get(i);
-				value += evaluateReview(review);
+			
+			bc.setDBAndCollection("cs336", "unlabel_review_after_splitting");
+			int value = 0;
+			//get each review out of the review list of splitted words
+			DBCursor cursor1 = bc.getCursor();
+			
+			while(cursor1.hasNext()){
+				value = 0;
+				DBObject line = cursor1.next();
+				
+				BasicDBList reviews = (BasicDBList) line.get("review");
+				
+				for(int i = 0; i < reviews.size(); i++){
+					BasicDBObject review = (BasicDBObject) reviews.get(i);
+					value += evaluateReview(review);
+				}
+				
+				if(value >= 0){
+					//positive review
+					line.put("category", "positive");
+				}else{
+					//negative review
+					line.put("category", "negative");
+				}
+				writer.println(line);
 			}
 			
-			if(value >= 0){
-				//positive review
-			}else{
-				//negative review
-			}
+
+			writer.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		
 		
 		bc.close();
 	}
